@@ -1,1 +1,104 @@
 
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hello AI - Chat with Voice</title>
+    <script src="https://js.puter.com/v2/"></script>
+    <link rel="stylesheet" href="chat.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="index.html" class="back-button">⬅ Home</a>
+            <div class="logo">🤖 AI Chat</div>
+        </header>
+        <main>
+            <div id="chat-box"></div>
+            <div class="chat-input">
+                <input type="text" id="userInput" placeholder="Type or speak a message...">
+                <button onclick="getResponse()">➡</button>
+                <button onclick="startVoiceRecognition()">🎤</button>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function getResponse() {
+            let userMessage = document.getElementById("userInput").value.trim();
+            if (!userMessage) return;
+
+            addMessage("You", userMessage);
+            document.getElementById("userInput").value = ""; // Clear input after sending
+
+            puter.ai.chat(userMessage)
+                .then(response => {
+                    addMessage("AI", response);
+                    speakResponse(response); // AI speaks the response
+                })
+                .catch(() => addMessage("AI", "Error: Unable to get response."));
+        }
+
+        function addMessage(sender, message) {
+            let chatBox = document.getElementById("chat-box");
+            let msgElement = document.createElement("p");
+            msgElement.innerHTML = `<strong>${sender}:</strong> ${message}`;
+            chatBox.appendChild(msgElement);
+            chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll to latest message
+        }
+
+        // Voice Recognition (Speech-to-Text)
+        function startVoiceRecognition() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                alert("Your browser does not support speech recognition.");
+                return;
+            }
+
+            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'en-US';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.start();
+
+            recognition.onresult = function(event) {
+                let voiceText = event.results[0][0].transcript;
+                document.getElementById("userInput").value = voiceText;
+                getResponse(); // Auto-send message after recognizing speech
+            };
+
+            recognition.onerror = function(event) {
+                console.error("Voice recognition error:", event.error);
+            };
+        }
+
+        // AI Response Speech (Text-to-Speech)
+        function speakResponse(text) {
+            if (!('speechSynthesis' in window)) {
+                console.error("Speech synthesis not supported in this browser.");
+                return;
+            }
+
+            const speech = new SpeechSynthesisUtterance();
+            speech.text = text;
+            speech.lang = 'en-US';
+            speech.volume = 1;
+            speech.rate = 1;
+            speech.pitch = 1;
+
+            window.speechSynthesis.speak(speech);
+        }
+
+        window.onload = function () {
+            let savedQuestion = localStorage.getItem("question");
+            if (savedQuestion) {
+                document.getElementById("userInput").value = savedQuestion;
+                getResponse();
+            }
+        };
+    </script>
+</body>
+</html>
+
